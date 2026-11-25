@@ -48,7 +48,7 @@
     .status-tag.active[data-status="收尾"] { background: #fef3c7; border-color: #f59e0b; color: #b45309; font-weight: 600; }
     .status-tag.active[data-status="已完成"] { background: #dcfce7; border-color: #22c55e; color: #15803d; font-weight: 600; }
 
-    /* 生活/学习分区“正在进行”专属标签功能 */
+    /* 专属标签功能 */
     .add-note-btn { margin-left: auto; border: 1px dashed #93c5fd; background: #eff6ff; color: #2563eb; padding: 4px 9px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .add-note-btn:hover { background: #dbeafe; }
 
@@ -98,12 +98,10 @@
 
     let currentCategory = "工作";
     let currentFilter = "全部";
-    let editingNoteId = null; // 记录当前正在展开标签输入框的任务ID
+    let editingNoteId = null;
 
-    // 读取本地存储，默认为空数组（已移除两条默认示例任务）
     let todos = JSON.parse(localStorage.getItem("my_todos_v2")) || [];
 
-    // 兼容旧版数据（如果之前 v1 存过数据且 v2 为空，自动迁移到“工作”分区）
     if (todos.length === 0 && localStorage.getItem("my_todos_v1")) {
       const oldTodos = JSON.parse(localStorage.getItem("my_todos_v1")) || [];
       const filteredOld = oldTodos.filter(
@@ -117,6 +115,13 @@
 
     function save() {
       localStorage.setItem("my_todos_v2", JSON.stringify(todos));
+    }
+
+    function canShowTag(category, status) {
+      if (category === "工作") {
+        return status === "正在进行" || status === "收尾";
+      }
+      return status === "正在进行";
     }
 
     function setCategory(category, btn) {
@@ -151,7 +156,7 @@
       const item = todos.find(t => t.id === id);
       if (item) {
         item.status = newStatus;
-        if (newStatus !== "正在进行" && editingNoteId === id) {
+        if (!canShowTag(item.category || "工作", newStatus) && editingNoteId === id) {
           editingNoteId = null;
         }
         save();
@@ -232,7 +237,8 @@
       }
 
       listEl.innerHTML = filtered.map(item => {
-        const supportsTag = (currentCategory === "生活" || currentCategory === "学习") && item.status === "正在进行";
+        const itemCategory = item.category || "工作";
+        const supportsTag = canShowTag(itemCategory, item.status);
         const isEditing = editingNoteId === item.id;
 
         return `
