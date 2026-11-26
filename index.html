@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>待办清单</title>
+  <title>我的待办</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
-    body { background: #f4f6f9; color: #1f2937; padding: 16px; max-width: 480px; margin: 0 auto; }
+    body { background: #f4f6f9; color: #1f2937; padding: 18px; max-width: 624px; margin: 0 auto; }
     header { margin-bottom: 14px; }
-    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
     .subtitle { font-size: 13px; color: #6b7280; }
 
     /* 分区导航：工作 / 生活 / 学习 */
@@ -21,7 +21,7 @@
     /* 输入区 */
     .input-box { display: flex; gap: 8px; margin-bottom: 14px; background: #fff; padding: 10px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
     .input-box input { flex: 1; border: none; outline: none; font-size: 15px; background: transparent; }
-    .input-box button { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .input-box button { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 14px; font-weight: 600; cursor: pointer; }
     .input-box button:active { opacity: 0.85; }
 
     /* 状态筛选栏 */
@@ -31,9 +31,16 @@
 
     /* 任务卡片 */
     .todo-list { display: flex; flex-direction: column; gap: 10px; }
-    .todo-item { background: #fff; padding: 14px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); display: flex; flex-direction: column; gap: 10px; }
+    .todo-item { background: #fff; padding: 14px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); display: flex; flex-direction: column; gap: 10px; transition: box-shadow 0.12s, opacity 0.12s; }
+    .todo-item.dragging { opacity: 0.55; box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+    .todo-item.drag-over { border-top: 2px solid #2563eb; }
+
     .todo-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-    .todo-title { font-size: 15px; line-height: 1.45; word-break: break-all; }
+    .todo-title-wrap { display: flex; align-items: flex-start; gap: 8px; flex: 1; min-width: 0; }
+    .drag-handle { color: #9ca3af; font-size: 15px; line-height: 1.45; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; padding: 0 3px; flex-shrink: 0; }
+    .drag-handle:hover { color: #4b5563; }
+    .drag-handle:active { cursor: grabbing; color: #2563eb; }
+    .todo-title { font-size: 15px; line-height: 1.45; word-break: break-all; user-select: text; -webkit-user-select: text; }
     .todo-title.done { text-decoration: line-through; color: #9ca3af; }
     .del-btn { background: none; border: none; color: #9ca3af; font-size: 13px; cursor: pointer; padding: 2px 4px; flex-shrink: 0; }
     .del-btn:hover { color: #ef4444; }
@@ -41,22 +48,29 @@
     /* 状态选择器 */
     .status-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .status-tag { border: 1px solid #e5e7eb; background: #f9fafb; color: #6b7280; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.15s; }
-    
+
     /* 四种状态的高亮配色 */
     .status-tag.active[data-status="未开始"] { background: #f3f4f6; border-color: #9ca3af; color: #374151; font-weight: 600; }
     .status-tag.active[data-status="正在进行"] { background: #dbeafe; border-color: #3b82f6; color: #1d4ed8; font-weight: 600; }
     .status-tag.active[data-status="收尾"] { background: #fef3c7; border-color: #f59e0b; color: #b45309; font-weight: 600; }
     .status-tag.active[data-status="已完成"] { background: #dcfce7; border-color: #22c55e; color: #15803d; font-weight: 600; }
 
-    /* 专属标签功能 */
+    /* 批注功能 */
     .add-note-btn { margin-left: auto; border: 1px dashed #93c5fd; background: #eff6ff; color: #2563eb; padding: 4px 9px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .add-note-btn:hover { background: #dbeafe; }
 
-    .note-display { background: #f8fafc; border-left: 3px solid #3b82f6; padding: 7px 10px; border-radius: 6px; font-size: 13px; color: #334155; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; word-break: break-all; }
-    .note-edit-link { color: #2563eb; font-size: 12px; border: none; background: none; cursor: pointer; flex-shrink: 0; }
+    .note-display { background: #f8fafc; border-left: 3px solid #3b82f6; padding: 8px 10px; border-radius: 6px; font-size: 13px; color: #334155; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .note-text { flex: 1; min-width: 0; line-height: 1.5; word-break: break-all; white-space: pre-wrap; user-select: text; -webkit-user-select: text; cursor: text; }
+    .note-status-badge { display: inline-block; font-size: 11px; color: #1d4ed8; background: #dbeafe; padding: 1px 6px; border-radius: 4px; margin-right: 6px; font-weight: 600; user-select: none; }
+    .note-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .note-action-link { color: #2563eb; font-size: 12px; border: none; background: none; cursor: pointer; padding: 0; }
+    .note-action-link:hover { text-decoration: underline; }
+    .note-action-link.copied { color: #16a34a; font-weight: 600; text-decoration: none; }
+    .note-action-link.delete { color: #9ca3af; }
+    .note-action-link.delete:hover { color: #ef4444; }
 
     .note-editor { display: flex; gap: 6px; margin-top: 2px; }
-    .note-editor input { flex: 1; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px; font-size: 13px; outline: none; }
+    .note-editor input { flex: 1; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px; font-size: 13px; outline: none; user-select: text; -webkit-user-select: text; }
     .note-editor input:focus { border-color: #3b82f6; }
     .note-save-btn { background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
     .note-cancel-btn { background: #e5e7eb; color: #374151; border: none; border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
@@ -66,73 +80,99 @@
 </head>
 <body>
   <header>
-    <h1>待办事项管理</h1>
+    <h1>我的待办</h1>
     <div class="subtitle" id="summary">加载中...</div>
   </header>
 
-  <!-- 三大分区切换 -->
   <div class="category-tabs" id="categoryTabs">
     <button class="cat-btn active" onclick="setCategory('工作', this)">工作</button>
     <button class="cat-btn" onclick="setCategory('生活', this)">生活</button>
     <button class="cat-btn" onclick="setCategory('学习', this)">学习</button>
   </div>
 
-  <!-- 添加输入框 -->
   <div class="input-box">
     <input type="text" id="todoInput" placeholder="在「工作」中添加新的待办事项..." />
     <button onclick="addTodo()">添加</button>
   </div>
 
-  <!-- 状态筛选栏（随分区自动变化） -->
   <div class="filters" id="filterBar"></div>
-
-  <!-- 任务列表 -->
   <div class="todo-list" id="todoList"></div>
 
   <script>
-    const CATEGORY_CONFIG = {
-      "工作": ["未开始", "正在进行", "收尾", "已完成"],
-      "生活": ["未开始", "正在进行", "已完成"],
-      "学习": ["未开始", "正在进行", "已完成"]
-    };
+    const STATUSES = ["未开始", "正在进行", "收尾", "已完成"];
+    const NOTE_ALLOWED_STATUSES = ["未开始", "正在进行", "收尾"];
 
     let currentCategory = "工作";
     let currentFilter = "全部";
     let editingNoteId = null;
+    let draggedId = null;
+    let touchDragId = null;
+    let copiedTimer = null;
+    let copiedItemId = null;
 
-    let todos = JSON.parse(localStorage.getItem("my_todos_v2")) || [];
-
-    if (todos.length === 0 && localStorage.getItem("my_todos_v1")) {
-      const oldTodos = JSON.parse(localStorage.getItem("my_todos_v1")) || [];
-      const filteredOld = oldTodos.filter(
-        t => t.text !== "熟悉待办清单的状态切换功能" && t.text !== "体验添加和删除一条新任务"
-      );
-      if (filteredOld.length > 0) {
-        todos = filteredOld.map(t => ({ ...t, category: "工作", note: "" }));
-        save();
+    function normalizeTodo(t) {
+      if (!t || typeof t !== "object") return null;
+      const notes = (t.notes && typeof t.notes === "object") ? { ...t.notes } : {};
+      if (typeof t.note === "string" && t.note.trim()) {
+        const targetStatus = NOTE_ALLOWED_STATUSES.includes(t.status) ? t.status : "未开始";
+        if (!notes[targetStatus]) notes[targetStatus] = t.note.trim();
       }
+      return {
+        id: Number(t.id) || Date.now() + Math.random(),
+        category: ["工作", "生活", "学习"].includes(t.category) ? t.category : "工作",
+        text: String(t.text || ""),
+        status: STATUSES.includes(t.status) ? t.status : "未开始",
+        notes
+      };
     }
+
+    function loadTodos() {
+      try {
+        const rawV2 = localStorage.getItem("my_todos_v2");
+        if (rawV2) {
+          const parsed = JSON.parse(rawV2);
+          if (Array.isArray(parsed)) return parsed.map(normalizeTodo).filter(Boolean);
+        }
+        const rawV1 = localStorage.getItem("my_todos_v1");
+        if (rawV1) {
+          const parsedV1 = JSON.parse(rawV1);
+          if (Array.isArray(parsedV1)) {
+            return parsedV1
+              .filter(t => t && t.text !== "熟悉待办清单的状态切换功能" && t.text !== "体验添加和删除一条新任务")
+              .map(t => normalizeTodo({ ...t, category: "工作" }))
+              .filter(Boolean);
+          }
+        }
+      } catch (err) {
+        console.warn("读取本地数据失败，已重置为空列表：", err);
+      }
+      return [];
+    }
+
+    let todos = loadTodos();
 
     function save() {
-      localStorage.setItem("my_todos_v2", JSON.stringify(todos));
+      try {
+        localStorage.setItem("my_todos_v2", JSON.stringify(todos));
+      } catch (err) {}
     }
 
-    function canShowTag(category, status) {
-      if (category === "工作") {
-        return status === "正在进行" || status === "收尾";
-      }
-      return status === "正在进行";
+    function canShowNote(status) {
+      return NOTE_ALLOWED_STATUSES.includes(status);
+    }
+
+    function getCurrentNote(item) {
+      if (!item || !item.notes) return "";
+      return item.notes[item.status] || "";
     }
 
     function setCategory(category, btn) {
       currentCategory = category;
       currentFilter = "全部";
       editingNoteId = null;
-
       document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-
-      document.getElementById("todoInput").placeholder = `在「${category}」中添加新的待办事项...`;
+      if (btn) btn.classList.add("active");
+      document.getElementById("todoInput").placeholder = "在「" + category + "」中添加新的待办事项...";
       render();
     }
 
@@ -145,7 +185,7 @@
         category: currentCategory,
         text,
         status: "未开始",
-        note: ""
+        notes: {}
       });
       input.value = "";
       save();
@@ -154,14 +194,11 @@
 
     function changeStatus(id, newStatus) {
       const item = todos.find(t => t.id === id);
-      if (item) {
-        item.status = newStatus;
-        if (!canShowTag(item.category || "工作", newStatus) && editingNoteId === id) {
-          editingNoteId = null;
-        }
-        save();
-        render();
-      }
+      if (!item) return;
+      item.status = newStatus;
+      if (editingNoteId === id) editingNoteId = null;
+      save();
+      render();
     }
 
     function deleteTodo(id) {
@@ -181,7 +218,7 @@
       editingNoteId = id;
       render();
       setTimeout(() => {
-        const input = document.getElementById(`note-input-${id}`);
+        const input = document.getElementById("note-input-" + id);
         if (input) input.focus();
       }, 0);
     }
@@ -192,28 +229,87 @@
     }
 
     function saveNote(id) {
-      const input = document.getElementById(`note-input-${id}`);
+      const input = document.getElementById("note-input-" + id);
       if (!input) return;
       const item = todos.find(t => t.id === id);
-      if (item) {
-        item.note = input.value.trim();
+      if (item && canShowNote(item.status)) {
+        if (!item.notes) item.notes = {};
+        const val = input.value.trim();
+        if (val) {
+          item.notes[item.status] = val;
+        } else {
+          delete item.notes[item.status];
+        }
         editingNoteId = null;
         save();
         render();
       }
     }
 
+    function deleteNote(id) {
+      const item = todos.find(t => t.id === id);
+      if (item && item.notes) {
+        delete item.notes[item.status];
+        if (editingNoteId === id) editingNoteId = null;
+        if (copiedItemId === id) copiedItemId = null;
+        save();
+        render();
+      }
+    }
+
+    function copyNote(id) {
+      const item = todos.find(t => t.id === id);
+      const text = getCurrentNote(item);
+      if (!text) return;
+
+      const onSuccess = () => {
+        copiedItemId = id;
+        render();
+        clearTimeout(copiedTimer);
+        copiedTimer = setTimeout(() => {
+          copiedItemId = null;
+          render();
+        }, 1500);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(onSuccess).catch(() => fallbackCopy(text, onSuccess));
+      } else {
+        fallbackCopy(text, onSuccess);
+      }
+    }
+
+    function fallbackCopy(text, callback) {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand("copy");
+        if (callback) callback();
+      } catch (e) {}
+      document.body.removeChild(textarea);
+    }
+
+    function reorderTodos(sourceId, targetId) {
+      if (!sourceId || !targetId || sourceId === targetId) return;
+      const sourceIndex = todos.findIndex(t => t.id === sourceId);
+      const targetIndex = todos.findIndex(t => t.id === targetId);
+      if (sourceIndex === -1 || targetIndex === -1) return;
+      const [movedItem] = todos.splice(sourceIndex, 1);
+      todos.splice(targetIndex, 0, movedItem);
+      save();
+      render();
+    }
+
     function renderFilters() {
       const filterBar = document.getElementById("filterBar");
-      const statuses = CATEGORY_CONFIG[currentCategory];
-      const allFilters = ["全部", ...statuses];
-
-      filterBar.innerHTML = allFilters.map(f => `
-        <button
-          class="filter-btn ${currentFilter === f ? 'active' : ''}"
-          onclick="setFilter('${f}')"
-        >${f}</button>
-      `).join("");
+      const allFilters = ["全部", ...STATUSES];
+      filterBar.innerHTML = allFilters.map(f =>
+        '<button class="filter-btn ' + (currentFilter === f ? "active" : "") + '" onclick="setFilter(\'' + f + '\')">' + f + "</button>"
+      ).join("");
     }
 
     function render() {
@@ -221,76 +317,152 @@
 
       const listEl = document.getElementById("todoList");
       const summaryEl = document.getElementById("summary");
-      const statuses = CATEGORY_CONFIG[currentCategory];
 
       const catTodos = todos.filter(t => (t.category || "工作") === currentCategory);
       const doneCount = catTodos.filter(t => t.status === "已完成").length;
-      summaryEl.textContent = `${currentCategory}分区 · 共 ${catTodos.length} 项任务 · 已完成 ${doneCount} 项`;
+      summaryEl.textContent = currentCategory + "分区 · 共 " + catTodos.length + " 项任务 · 已完成 " + doneCount + " 项";
 
       const filtered = currentFilter === "全部"
         ? catTodos
         : catTodos.filter(t => t.status === currentFilter);
 
       if (filtered.length === 0) {
-        listEl.innerHTML = `<div class="empty">「${currentCategory}」当前分类下暂无待办事项</div>`;
+        listEl.innerHTML = '<div class="empty">「' + currentCategory + '」当前分类下暂无待办事项</div>';
         return;
       }
 
       listEl.innerHTML = filtered.map(item => {
-        const itemCategory = item.category || "工作";
-        const supportsTag = canShowTag(itemCategory, item.status);
+        const supportsNote = canShowNote(item.status);
+        const currentNote = getCurrentNote(item);
         const isEditing = editingNoteId === item.id;
+        const isCopied = copiedItemId === item.id;
 
-        return `
-          <div class="todo-item">
-            <div class="todo-top">
-              <div class="todo-title ${item.status === '已完成' ? 'done' : ''}">${escapeHtml(item.text)}</div>
-              <button class="del-btn" onclick="deleteTodo(${item.id})">删除</button>
-            </div>
+        const statusButtonsHtml = STATUSES.map(st =>
+          '<button class="status-tag ' + (item.status === st ? "active" : "") + '" data-status="' + st + '" onclick="changeStatus(' + item.id + ', \'' + st + '\')">' + st + "</button>"
+        ).join("");
 
-            <div class="status-group">
-              ${statuses.map(st => `
-                <button
-                  class="status-tag ${item.status === st ? 'active' : ''}"
-                  data-status="${st}"
-                  onclick="changeStatus(${item.id}, '${st}')"
-                >${st}</button>
-              `).join("")}
+        const addNoteBtnHtml = (supportsNote && !isEditing)
+          ? '<button class="add-note-btn" onclick="openNoteEditor(' + item.id + ')">' + (currentNote ? "修改批注" : "+ 添加批注") + "</button>"
+          : "";
 
-              ${supportsTag && !isEditing ? `
-                <button class="add-note-btn" onclick="openNoteEditor(${item.id})">
-                  ${item.note ? '修改标签' : '+ 添加标签'}
-                </button>
-              ` : ''}
-            </div>
+        const editorHtml = (supportsNote && isEditing)
+          ? '<div class="note-editor">' +
+              '<input type="text" id="note-input-' + item.id + '" value="' + escapeHtml(currentNote) + '" placeholder="输入「' + item.status + '」阶段的批注内容..." onkeydown="if(event.key===\'Enter\') saveNote(' + item.id + ')" />' +
+              '<button class="note-save-btn" onclick="saveNote(' + item.id + ')">保存</button>' +
+              '<button class="note-cancel-btn" onclick="cancelNoteEditor()">取消</button>' +
+            "</div>"
+          : "";
 
-            ${supportsTag && isEditing ? `
-              <div class="note-editor">
-                <input
-                  type="text"
-                  id="note-input-${item.id}"
-                  value="${escapeHtml(item.note || '')}"
-                  placeholder="输入标签或当前进度备注..."
-                  onkeydown="if(event.key==='Enter') saveNote(${item.id})"
-                />
-                <button class="note-save-btn" onclick="saveNote(${item.id})">保存</button>
-                <button class="note-cancel-btn" onclick="cancelNoteEditor()">取消</button>
-              </div>
-            ` : ''}
+        const displayHtml = (supportsNote && !isEditing && currentNote)
+          ? '<div class="note-display">' +
+              '<div class="note-text"><span class="note-status-badge">' + item.status + "</span>" + escapeHtml(currentNote) + "</div>" +
+              '<div class="note-actions">' +
+                '<button class="note-action-link ' + (isCopied ? "copied" : "") + '" onclick="copyNote(' + item.id + ')">' + (isCopied ? "已复制" : "复制") + "</button>" +
+                '<button class="note-action-link" onclick="openNoteEditor(' + item.id + ')">编辑</button>' +
+                '<button class="note-action-link delete" onclick="deleteNote(' + item.id + ')">删除</button>' +
+              "</div>" +
+            "</div>"
+          : "";
 
-            ${supportsTag && !isEditing && item.note ? `
-              <div class="note-display">
-                <span>🏷️ ${escapeHtml(item.note)}</span>
-                <button class="note-edit-link" onclick="openNoteEditor(${item.id})">编辑</button>
-              </div>
-            ` : ''}
-          </div>
-        `;
+        return (
+          '<div class="todo-item" data-id="' + item.id + '" ondragover="handleDragOver(event)" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, ' + item.id + ')">' +
+            '<div class="todo-top">' +
+              '<div class="todo-title-wrap">' +
+                '<span class="drag-handle" title="按住拖动调整顺序" draggable="true" ondragstart="handleDragStart(event, ' + item.id + ')" ondragend="handleDragEnd(event)" ontouchstart="handleTouchStart(event, ' + item.id + ')" ontouchmove="handleTouchMove(event)" ontouchend="handleTouchEnd(event)">⋮⋮</span>' +
+                '<div class="todo-title ' + (item.status === "已完成" ? "done" : "") + '">' + escapeHtml(item.text) + "</div>" +
+              "</div>" +
+              '<button class="del-btn" onclick="deleteTodo(' + item.id + ')">删除</button>' +
+            "</div>" +
+            '<div class="status-group">' + statusButtonsHtml + addNoteBtnHtml + "</div>" +
+            editorHtml +
+            displayHtml +
+          "</div>"
+        );
       }).join("");
     }
 
+    function handleDragStart(event, id) {
+      draggedId = id;
+      const card = event.currentTarget.closest(".todo-item");
+      if (card) {
+        card.classList.add("dragging");
+        if (event.dataTransfer && event.dataTransfer.setDragImage) {
+          event.dataTransfer.setDragImage(card, 20, 20);
+        }
+      }
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", String(id));
+      }
+    }
+
+    function handleDragOver(event) {
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+    }
+
+    function handleDragEnter(event) {
+      const card = event.currentTarget;
+      if (draggedId && Number(card.dataset.id) !== draggedId) {
+        card.classList.add("drag-over");
+      }
+    }
+
+    function handleDragLeave(event) {
+      const card = event.currentTarget;
+      if (!card.contains(event.relatedTarget)) {
+        card.classList.remove("drag-over");
+      }
+    }
+
+    function handleDrop(event, targetId) {
+      event.preventDefault();
+      event.currentTarget.classList.remove("drag-over");
+      const sourceId = draggedId || Number(event.dataTransfer && event.dataTransfer.getData("text/plain"));
+      reorderTodos(sourceId, targetId);
+    }
+
+    function handleDragEnd(event) {
+      const card = event.currentTarget.closest(".todo-item");
+      if (card) card.classList.remove("dragging");
+      document.querySelectorAll(".todo-item.drag-over").forEach(el => el.classList.remove("drag-over"));
+      draggedId = null;
+    }
+
+    function handleTouchStart(event, id) {
+      touchDragId = id;
+      const card = event.currentTarget.closest(".todo-item");
+      if (card) card.classList.add("dragging");
+    }
+
+    function handleTouchMove(event) {
+      if (!touchDragId) return;
+      event.preventDefault();
+      const touch = event.touches[0];
+      const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetCard = targetEl ? targetEl.closest(".todo-item") : null;
+      document.querySelectorAll(".todo-item.drag-over").forEach(el => el.classList.remove("drag-over"));
+      if (targetCard && Number(targetCard.dataset.id) !== touchDragId) {
+        targetCard.classList.add("drag-over");
+      }
+    }
+
+    function handleTouchEnd(event) {
+      if (!touchDragId) return;
+      const touch = event.changedTouches[0];
+      const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetCard = targetEl ? targetEl.closest(".todo-item") : null;
+      document.querySelectorAll(".todo-item.dragging, .todo-item.drag-over").forEach(el => {
+        el.classList.remove("dragging", "drag-over");
+      });
+      if (targetCard) {
+        reorderTodos(touchDragId, Number(targetCard.dataset.id));
+      }
+      touchDragId = null;
+    }
+
     function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+      return String(str).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
     }
 
     document.getElementById("todoInput").addEventListener("keydown", e => {
